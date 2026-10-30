@@ -1,0 +1,1220 @@
+openapi: 3.1.0
+info:
+  title: Owelio API
+  version: 1.0.0
+  description: |
+    HTTP API implied by the frontend `Services` contract in `frontend/src/services/types.ts`.
+    The UI today uses an in-browser mock; a real backend should implement these endpoints
+    with the same authorization rules and response shapes as `frontend/src/services/mock.ts`.
+
+    **Money:** amounts are integer minor units (e.g. pence). **Dates:** `YYYY-MM-DD` for
+    expense/settlement dates; ISO-8601 datetimes for audit fields.
+
+    **Side effects:** `GET /auth/me` and successful `POST /auth/login` materialise due
+    recurring expenses (same as the mock). Register/login also accept pending email invites
+    for the user's address.
+
+servers:
+  - url: /api/v1
+    description: Versioned API base (path prefix assumed by a future HTTP client)
+
+tags:
+  - name: auth
+  - name: groups
+  - name: expenses
+  - name: settlements
+  - name: recurring
+  - name: notifications
+  - name: dashboard
+
+paths:
+  /auth/me:
+    get:
+      tags: [auth]
+      summary: Current user
+      description: |
+        Maps to `auth.currentUser()`. Returns the logged-in user or `null`.
+        Does not require authentication; when a session exists, runs recurring-expense
+        catch-up before responding.
+      operationId: authCurrentUser
+      security: []
+      responses:
+        "200":
+          description: Session absent or present
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CurrentUserResponse"
+
+  /auth/register:
+    post:
+      tags: [auth]
+      summary: Register
+      description: |
+        Maps to `auth.register()`. Creates an account, starts a session, and accepts
+        pending email invitations for the new user's address.
+      operationId: authRegister
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: User created and session established
+          headers:
+            Set-Cookie:
+              description: Session cookie
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          $ref: "#/components/responses/Invalid"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /auth/login:
+    post:
+      tags: [auth]
+      summary: Log in
+      description: |
+        Maps to `auth.login()`. On success, starts a session, accepts pending email
+        invitations, and runs recurring-expense catch-up.
+      operationId: authLogin
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Session established
+          headers:
+            Set-Cookie:
+              description: Session cookie
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+
+  /auth/logout:
+    post:
+      tags: [auth]
+      summary: Log out
+      description: Maps to `auth.logout()`. Clears the session. Idempotent when not logged in.
+      operationId: authLogout
+      security:
+        - sessionCookie: []
+        - {}
+      responses:
+        "204":
+          description: Session cleared
+
+  /groups:
+    get:
+      tags: [groups]
+      summary: List my groups
+      description: Maps to `groups.list()`. Groups where the current user is a member.
+      operationId: groupsList
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Group list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Group"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+    post:
+      tags: [groups]
+      summary: Create group
+      description: |
+        Maps to `groups.create()`. Creator becomes the first member. `autoArchive` defaults
+        to `true` when `kind` is `temporary`, otherwise `false`.
+      operationId: groupsCreate
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateGroupRequest"
+      responses:
+        "201":
+          description: Group created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Group"
+        "400":
+          $ref: "#/components/responses/Invalid"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+
+  /groups/join:
+    post:
+      tags: [groups]
+      summary: Join group by code
+      description: |
+        Maps to `groups.joinByCode()`. Code is matched case-insensitively. Cannot join
+        archived groups. Idempotent if already a member.
+      operationId: groupsJoinByCode
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JoinGroupRequest"
+      responses:
+        "200":
+          description: Group joined (or already a member)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Group"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /groups/{groupId}:
+    parameters:
+      - $ref: "#/components/parameters/groupId"
+    get:
+      tags: [groups]
+      summary: Get group
+      description: Maps to `groups.get()`. Caller must be a member.
+      operationId: groupsGet
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Group
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Group"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags: [groups]
+      summary: Update group settings
+      description: |
+        Maps to `groups.update()`. Only `name` and `autoArchive` may change. Group must
+        not be archived (writable).
+      operationId: groupsUpdate
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateGroupRequest"
+      responses:
+        "200":
+          description: Updated group
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Group"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /groups/{groupId}/archived:
+    parameters:
+      - $ref: "#/components/parameters/groupId"
+    put:
+      tags: [groups]
+      summary: Archive or reopen group
+      description: |
+        Maps to `groups.setArchived()`. Members may archive or reopen; notifies other members.
+        Archived groups are read-only for expenses, settlements, and recurring rules.
+      operationId: groupsSetArchived
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetArchivedRequest"
+      responses:
+        "200":
+          description: Updated group
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Group"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /groups/{groupId}/members:
+    parameters:
+      - $ref: "#/components/parameters/groupId"
+    get:
+      tags: [groups]
+      summary: List group members
+      description: Maps to `groups.members()`. Caller must be a member.
+      operationId: groupsMembers
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Members (public user fields only)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /groups/{groupId}/invites:
+    parameters:
+      - $ref: "#/components/parameters/groupId"
+    get:
+      tags: [groups]
+      summary: List pending email invites
+      description: Maps to `groups.invites()`. Caller must be a member.
+      operationId: groupsInvitesList
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Pending invites for the group
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EmailInvite"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    post:
+      tags: [groups]
+      summary: Invite by email
+      description: |
+        Maps to `groups.inviteByEmail()`. If the email belongs to an existing user, they are
+        added immediately; otherwise a pending invite is stored until they register.
+        Group must not be archived.
+      operationId: groupsInviteByEmail
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InviteByEmailRequest"
+      responses:
+        "201":
+          description: Invite record (even when user was added immediately)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailInvite"
+        "400":
+          $ref: "#/components/responses/Invalid"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /groups/{groupId}/expenses:
+    parameters:
+      - $ref: "#/components/parameters/groupId"
+    get:
+      tags: [expenses]
+      summary: List expenses
+      description: |
+        Maps to `expenses.list()`. Sorted by date descending, then `createdAt` descending.
+        Caller must be a member.
+      operationId: expensesList
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Expenses in the group
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Expense"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    post:
+      tags: [expenses]
+      summary: Create expense
+      description: |
+        Maps to `expenses.create()`. Validates split and membership; group must not be
+        archived. Notifies other members.
+      operationId: expensesCreate
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExpenseInput"
+      responses:
+        "201":
+          description: Expense created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Expense"
+        "400":
+          $ref: "#/components/responses/Invalid"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /expenses/{expenseId}:
+    parameters:
+      - $ref: "#/components/parameters/expenseId"
+    patch:
+      tags: [expenses]
+      summary: Update expense
+      description: |
+        Maps to `expenses.update()`. Replaces expense fields from `ExpenseInput`. Group must
+        not be archived. Notifies other members.
+      operationId: expensesUpdate
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExpenseInput"
+      responses:
+        "200":
+          description: Updated expense
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Expense"
+        "400":
+          $ref: "#/components/responses/Invalid"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [expenses]
+      summary: Delete expense
+      description: Maps to `expenses.remove()`. Group must not be archived.
+      operationId: expensesDelete
+      security:
+        - sessionCookie: []
+      responses:
+        "204":
+          description: Deleted
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /groups/{groupId}/settlements:
+    parameters:
+      - $ref: "#/components/parameters/groupId"
+    get:
+      tags: [settlements]
+      summary: List settlements
+      description: |
+        Maps to `settlements.list()`. Sorted by date descending. Caller must be a member.
+      operationId: settlementsList
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Recorded payments between members
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Settlement"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    post:
+      tags: [settlements]
+      summary: Record settlement
+      description: |
+        Maps to `settlements.create()`. Amount is in the group's base currency (minor units).
+        May auto-archive the group when `autoArchive` is enabled and all balances reach zero.
+      operationId: settlementsCreate
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSettlementRequest"
+      responses:
+        "201":
+          description: Settlement recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Settlement"
+        "400":
+          $ref: "#/components/responses/Invalid"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /groups/{groupId}/recurring-expenses:
+    parameters:
+      - $ref: "#/components/parameters/groupId"
+    get:
+      tags: [recurring]
+      summary: List recurring expense rules
+      description: Maps to `recurring.list()`. Caller must be a member.
+      operationId: recurringList
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Recurring rules
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RecurringExpense"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    post:
+      tags: [recurring]
+      summary: Create recurring expense rule
+      description: |
+        Maps to `recurring.create()`. Validates the expense template, then materialises any
+        due occurrences (same catch-up behaviour as the mock).
+      operationId: recurringCreate
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRecurringExpenseRequest"
+      responses:
+        "201":
+          description: Rule created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecurringExpense"
+        "400":
+          $ref: "#/components/responses/Invalid"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /recurring-expenses/{recurringExpenseId}:
+    parameters:
+      - $ref: "#/components/parameters/recurringExpenseId"
+    patch:
+      tags: [recurring]
+      summary: Enable or disable recurring rule
+      description: |
+        Maps to `recurring.setActive()`. When re-enabled, materialises due occurrences.
+        Group must not be archived.
+      operationId: recurringSetActive
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetRecurringActiveRequest"
+      responses:
+        "200":
+          description: Updated rule
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecurringExpense"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [recurring]
+      summary: Delete recurring rule
+      description: Maps to `recurring.remove()`. Does not delete expenses already created.
+      operationId: recurringDelete
+      security:
+        - sessionCookie: []
+      responses:
+        "204":
+          description: Deleted
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /notifications:
+    get:
+      tags: [notifications]
+      summary: List my notifications
+      description: |
+        Maps to `notifications.list()`. Sorted by `createdAt` descending.
+      operationId: notificationsList
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Notifications for the current user
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AppNotification"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+
+  /notifications/read-all:
+    post:
+      tags: [notifications]
+      summary: Mark all notifications read
+      description: Maps to `notifications.markAllRead()`.
+      operationId: notificationsMarkAllRead
+      security:
+        - sessionCookie: []
+      responses:
+        "204":
+          description: All notifications marked read
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+
+  /dashboard/summary:
+    get:
+      tags: [dashboard]
+      summary: Dashboard summary
+      description: |
+        Maps to `dashboard.summary()`. Balances use group base currency per group;
+        `youOwe` / `owedToYou` aggregate across currencies (same as the mock UI).
+      operationId: dashboardSummary
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Balances and group list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: owelio_session
+      description: |
+        Session established by `POST /auth/register` or `POST /auth/login`.
+        Send on all authenticated requests.
+
+  parameters:
+    groupId:
+      name: groupId
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/Id"
+    expenseId:
+      name: expenseId
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/Id"
+    recurringExpenseId:
+      name: recurringExpenseId
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/Id"
+
+  responses:
+    Unauthenticated:
+      description: Not logged in or invalid credentials
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            code: unauthenticated
+            message: Please log in
+    Forbidden:
+      description: Logged in but not allowed (non-member, archived group, etc.)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Invalid:
+      description: Validation failed
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Conflict:
+      description: Conflict (e.g. duplicate email)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+  schemas:
+    Id:
+      type: string
+      description: Opaque identifier
+
+    ErrorResponse:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          enum: [unauthenticated, forbidden, not_found, invalid, conflict]
+        message:
+          type: string
+
+    User:
+      type: object
+      required: [id, name, email]
+      properties:
+        id:
+          $ref: "#/components/schemas/Id"
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+
+    CurrentUserResponse:
+      type: object
+      required: [user]
+      properties:
+        user:
+          oneOf:
+            - $ref: "#/components/schemas/User"
+            - type: "null"
+
+    RegisterRequest:
+      type: object
+      required: [name, email, password]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    GroupKind:
+      type: string
+      enum: [temporary, ongoing]
+
+    Group:
+      type: object
+      required:
+        - id
+        - name
+        - kind
+        - baseCurrency
+        - memberIds
+        - joinCode
+        - archived
+        - autoArchive
+        - createdBy
+        - createdAt
+      properties:
+        id:
+          $ref: "#/components/schemas/Id"
+        name:
+          type: string
+        kind:
+          $ref: "#/components/schemas/GroupKind"
+        baseCurrency:
+          type: string
+          description: ISO 4217 code (e.g. GBP)
+        memberIds:
+          type: array
+          items:
+            $ref: "#/components/schemas/Id"
+        joinCode:
+          type: string
+        archived:
+          type: boolean
+        autoArchive:
+          type: boolean
+        createdBy:
+          $ref: "#/components/schemas/Id"
+        createdAt:
+          type: string
+          format: date-time
+
+    CreateGroupRequest:
+      type: object
+      required: [name, kind, baseCurrency]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        kind:
+          $ref: "#/components/schemas/GroupKind"
+        baseCurrency:
+          type: string
+        autoArchive:
+          type: boolean
+
+    UpdateGroupRequest:
+      type: object
+      minProperties: 1
+      properties:
+        name:
+          type: string
+          minLength: 1
+        autoArchive:
+          type: boolean
+
+    SetArchivedRequest:
+      type: object
+      required: [archived]
+      properties:
+        archived:
+          type: boolean
+
+    JoinGroupRequest:
+      type: object
+      required: [code]
+      properties:
+        code:
+          type: string
+
+    InviteByEmailRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+
+    EmailInvite:
+      type: object
+      required: [id, groupId, email, invitedBy, createdAt]
+      properties:
+        id:
+          $ref: "#/components/schemas/Id"
+        groupId:
+          $ref: "#/components/schemas/Id"
+        email:
+          type: string
+          format: email
+        invitedBy:
+          $ref: "#/components/schemas/Id"
+        createdAt:
+          type: string
+          format: date-time
+
+    Attachment:
+      type: object
+      required: [name, type, dataUrl]
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+          description: MIME type
+        dataUrl:
+          type: string
+          description: Data URL for receipt or document content
+
+    SplitEqual:
+      type: object
+      required: [method]
+      properties:
+        method:
+          type: string
+          const: equal
+
+    SplitCustom:
+      type: object
+      required: [method, amounts]
+      properties:
+        method:
+          type: string
+          const: custom
+        amounts:
+          type: object
+          additionalProperties:
+            type: integer
+            description: Minor units in expense currency per participant id
+
+    SplitPercentage:
+      type: object
+      required: [method, percents]
+      properties:
+        method:
+          type: string
+          const: percentage
+        percents:
+          type: object
+          additionalProperties:
+            type: number
+          description: Must sum to 100 for included participants
+
+    SplitItem:
+      type: object
+      required: [id, name, amount, participantIds]
+      properties:
+        id:
+          $ref: "#/components/schemas/Id"
+        name:
+          type: string
+        amount:
+          type: integer
+          minimum: 1
+        participantIds:
+          type: array
+          items:
+            $ref: "#/components/schemas/Id"
+
+    SplitItemised:
+      type: object
+      required: [method, items]
+      properties:
+        method:
+          type: string
+          const: itemised
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/SplitItem"
+
+    Split:
+      oneOf:
+        - $ref: "#/components/schemas/SplitEqual"
+        - $ref: "#/components/schemas/SplitCustom"
+        - $ref: "#/components/schemas/SplitPercentage"
+        - $ref: "#/components/schemas/SplitItemised"
+      discriminator:
+        propertyName: method
+        mapping:
+          equal: "#/components/schemas/SplitEqual"
+          custom: "#/components/schemas/SplitCustom"
+          percentage: "#/components/schemas/SplitPercentage"
+          itemised: "#/components/schemas/SplitItemised"
+
+    ExpenseInput:
+      type: object
+      required:
+        - description
+        - amount
+        - currency
+        - exchangeRate
+        - date
+        - category
+        - attachments
+        - paidBy
+        - participantIds
+        - split
+      properties:
+        description:
+          type: string
+        amount:
+          type: integer
+          minimum: 1
+          description: Minor units in expense currency
+        currency:
+          type: string
+        exchangeRate:
+          type: number
+          exclusiveMinimum: 0
+          description: One unit of expense currency equals this many units of base currency
+        date:
+          type: string
+          format: date
+        category:
+          type: string
+        notes:
+          type: string
+        attachments:
+          type: array
+          items:
+            $ref: "#/components/schemas/Attachment"
+        paidBy:
+          $ref: "#/components/schemas/Id"
+        participantIds:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/Id"
+        split:
+          $ref: "#/components/schemas/Split"
+
+    Expense:
+      allOf:
+        - $ref: "#/components/schemas/ExpenseInput"
+        - type: object
+          required: [id, groupId, createdBy, createdAt]
+          properties:
+            id:
+              $ref: "#/components/schemas/Id"
+            groupId:
+              $ref: "#/components/schemas/Id"
+            createdBy:
+              $ref: "#/components/schemas/Id"
+            createdAt:
+              type: string
+              format: date-time
+            recurringId:
+              $ref: "#/components/schemas/Id"
+
+    Frequency:
+      type: string
+      enum: [daily, weekly, monthly]
+
+    RecurringExpense:
+      type: object
+      required:
+        - id
+        - groupId
+        - template
+        - frequency
+        - nextDate
+        - active
+        - createdBy
+      properties:
+        id:
+          $ref: "#/components/schemas/Id"
+        groupId:
+          $ref: "#/components/schemas/Id"
+        template:
+          $ref: "#/components/schemas/ExpenseInput"
+        frequency:
+          $ref: "#/components/schemas/Frequency"
+        nextDate:
+          type: string
+          format: date
+          description: Next scheduled occurrence (YYYY-MM-DD)
+        active:
+          type: boolean
+        createdBy:
+          $ref: "#/components/schemas/Id"
+
+    CreateRecurringExpenseRequest:
+      type: object
+      required: [template, frequency, startDate]
+      properties:
+        template:
+          $ref: "#/components/schemas/ExpenseInput"
+        frequency:
+          $ref: "#/components/schemas/Frequency"
+        startDate:
+          type: string
+          format: date
+
+    SetRecurringActiveRequest:
+      type: object
+      required: [active]
+      properties:
+        active:
+          type: boolean
+
+    Settlement:
+      type: object
+      required: [id, groupId, fromId, toId, amount, date, createdBy]
+      properties:
+        id:
+          $ref: "#/components/schemas/Id"
+        groupId:
+          $ref: "#/components/schemas/Id"
+        fromId:
+          $ref: "#/components/schemas/Id"
+        toId:
+          $ref: "#/components/schemas/Id"
+        amount:
+          type: integer
+          minimum: 1
+          description: Minor units in group base currency
+        date:
+          type: string
+          format: date
+        note:
+          type: string
+        createdBy:
+          $ref: "#/components/schemas/Id"
+
+    CreateSettlementRequest:
+      type: object
+      required: [fromId, toId, amount, date]
+      properties:
+        fromId:
+          $ref: "#/components/schemas/Id"
+        toId:
+          $ref: "#/components/schemas/Id"
+        amount:
+          type: integer
+          minimum: 1
+        date:
+          type: string
+          format: date
+        note:
+          type: string
+
+    AppNotification:
+      type: object
+      required: [id, userId, message, createdAt, read]
+      properties:
+        id:
+          $ref: "#/components/schemas/Id"
+        userId:
+          $ref: "#/components/schemas/Id"
+        groupId:
+          $ref: "#/components/schemas/Id"
+        message:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        read:
+          type: boolean
+
+    DashboardGroupRow:
+      type: object
+      required: [group, balance]
+      properties:
+        group:
+          $ref: "#/components/schemas/Group"
+        balance:
+          type: integer
+          description: Net balance for the current user in base currency (positive = owed to user)
+
+    CurrencyTotals:
+      type: object
+      required: [youOwe, owedToYou]
+      properties:
+        youOwe:
+          type: integer
+        owedToYou:
+          type: integer
+
+    DashboardSummary:
+      type: object
+      required: [youOwe, owedToYou, groups, byCurrency]
+      properties:
+        youOwe:
+          type: integer
+        owedToYou:
+          type: integer
+        groups:
+          type: array
+          items:
+            $ref: "#/components/schemas/DashboardGroupRow"
+        byCurrency:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/CurrencyTotals"

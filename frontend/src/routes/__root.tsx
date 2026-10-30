@@ -122,7 +122,7 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-  // The mock backend lives in this browser's storage, so render the app after hydration.
+  // Auth token and API client use localStorage; render the app after hydration.
   const hydrated = useHydrated();
 
   return (
