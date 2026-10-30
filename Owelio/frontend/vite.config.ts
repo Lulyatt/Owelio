@@ -12,4 +12,15 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  vite: {
+    server: {
+      // Avoid 8080 — Tomcat/Jenkins and other tools often use it and return "Cannot GET /".
+      host: "127.0.0.1",
+      port: 3000,
+      strictPort: true,
+      warmup: {
+        clientFiles: ["./src/routes/__root.tsx", "./src/routes/login.tsx", "./src/router.tsx"],
+      },
+    },
+  },
 });

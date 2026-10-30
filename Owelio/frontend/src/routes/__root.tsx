@@ -81,10 +81,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Tally — split shared expenses" },
-      { name: "description", content: "Split trips, meals and household costs fairly, in any currency." },
-      { property: "og:title", content: "Tally — split shared expenses" },
-      { property: "og:description", content: "Split trips, meals and household costs fairly, in any currency." },
+      { title: "Owelio — split shared expenses" },
+      { name: "description", content: "Split holidays, meals and household costs fairly, in any currency." },
+      { property: "og:title", content: "Owelio — split shared expenses" },
+      { property: "og:description", content: "Split holidays, meals and household costs fairly, in any currency." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@Lovable" },
@@ -108,7 +108,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en-GB">
       <head>
         <HeadContent />
       </head>
@@ -136,7 +136,16 @@ function RootComponent() {
           </main>
         </div>
       ) : (
-        <div className="min-h-screen" />
+        <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-background px-4 text-center">
+          <p className="font-display text-2xl font-bold text-primary">Owelio</p>
+          <p className="text-sm text-muted-foreground">Loading…</p>
+          <p className="max-w-sm text-xs text-muted-foreground">
+            The first run can take up to a minute while Vite prepares dependencies. Keep this terminal open.
+          </p>
+          <a href="/login" className="text-sm font-medium text-primary underline-offset-4 hover:underline">
+            Open log in page
+          </a>
+        </div>
       )}
       <Toaster richColors position="top-center" />
     </QueryClientProvider>

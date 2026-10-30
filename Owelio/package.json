@@ -1,0 +1,11 @@
+{
+  "name": "owelio-monorepo",
+  "private": true,
+  "scripts": {
+    "dev": "npm run dev --prefix frontend",
+    "dev:fresh": "npm run dev:fresh --prefix frontend",
+    "install:frontend": "npm install --prefix frontend",
+    "build": "npm run build --prefix frontend",
+    "test": "npm run test --prefix frontend"
+  }
+}

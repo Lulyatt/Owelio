@@ -136,7 +136,7 @@ export function ExpenseForm({ group, members, meId, initial, allowRecurring, onS
         <ToggleGroup type="single" variant="outline" value={method} onValueChange={(v) => v && setMethod(v as SplitMethod)} className="w-full">
           <ToggleGroupItem value="equal" className="flex-1">Equally</ToggleGroupItem>
           <ToggleGroupItem value="custom" className="flex-1">Amounts</ToggleGroupItem>
-          <ToggleGroupItem value="percentage" className="flex-1">Percent</ToggleGroupItem>
+          <ToggleGroupItem value="percentage" className="flex-1">Percentage</ToggleGroupItem>
           <ToggleGroupItem value="itemised" className="flex-1">Items</ToggleGroupItem>
         </ToggleGroup>
 

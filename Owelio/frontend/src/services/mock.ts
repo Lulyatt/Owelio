@@ -291,7 +291,7 @@ export function createMockServices(opts: MockOptions = {}): Services {
         const g = writableGroup(groupId);
         if (input.fromId === input.toId) throw new ServiceError("Choose two different people", "invalid");
         if (![input.fromId, input.toId].every((m) => g.memberIds.includes(m))) throw new ServiceError("Both people must be group members", "invalid");
-        if (!Number.isInteger(input.amount) || input.amount <= 0) throw new ServiceError("Amount must be greater than zero", "invalid");
+        if (!Number.isInteger(input.amount) || input.amount <= 0) throw new ServiceError("Amount must be more than zero", "invalid");
         const s: Settlement = { ...input, id: uid("s"), groupId, createdBy: me().id };
         state.settlements.push(s);
         const name = (id: ID) => state.users.find((u) => u.id === id)?.name ?? "Someone";
@@ -362,7 +362,7 @@ export function createMockServices(opts: MockOptions = {}): Services {
   };
 }
 
-/** Demo data so the app is explorable immediately. Login: alex@example.com / password123 */
+/** Demo data so the app is explorable immediately. Log in: alex@example.com / password123 */
 export function seedState(): State {
   const users = [
     { id: "u_alex", name: "Alex Morgan", email: "alex@example.com", password: "password123" },
@@ -379,7 +379,7 @@ export function seedState(): State {
       { id: "g_flat", name: "Flat 4B", kind: "ongoing", baseCurrency: "GBP", memberIds: ["u_alex", "u_sam"], joinCode: "FLAT4B", archived: false, autoArchive: false, createdBy: "u_sam", createdAt: t },
     ],
     expenses: [
-      { ...base, id: "e1", groupId: "g_lisbon", description: "Apartment", amount: 36000, currency: "GBP", exchangeRate: 1, date: "2026-10-10", category: "Accommodation", paidBy: "u_alex", participantIds: ["u_alex", "u_sam", "u_jo"], split: { method: "equal" }, createdBy: "u_alex" },
+      { ...base, id: "e1", groupId: "g_lisbon", description: "Flat", amount: 36000, currency: "GBP", exchangeRate: 1, date: "2026-10-10", category: "Accommodation", paidBy: "u_alex", participantIds: ["u_alex", "u_sam", "u_jo"], split: { method: "equal" }, createdBy: "u_alex" },
       { ...base, id: "e2", groupId: "g_lisbon", description: "Seafood dinner", amount: 9600, currency: "EUR", exchangeRate: 0.85, date: "2026-10-11", category: "Food & drink", paidBy: "u_sam", participantIds: ["u_alex", "u_sam", "u_jo"], split: { method: "itemised", items: [ { id: "i1", name: "Shared platter", amount: 6000, participantIds: ["u_alex", "u_sam", "u_jo"] }, { id: "i2", name: "Wine", amount: 3600, participantIds: ["u_alex", "u_sam"] } ] }, createdBy: "u_sam" },
       { ...base, id: "e3", groupId: "g_flat", description: "Electricity — October", amount: 8400, currency: "GBP", exchangeRate: 1, date: "2026-10-01", category: "Utilities", paidBy: "u_sam", participantIds: ["u_alex", "u_sam"], split: { method: "percentage", percents: { u_alex: 60, u_sam: 40 } }, createdBy: "u_sam" },
     ],

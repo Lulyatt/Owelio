@@ -15,7 +15,7 @@ export function AppHeader() {
     <header className="border-b bg-card/70 backdrop-blur">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
         <Link to="/" className="font-display text-2xl font-bold text-primary">
-          tally<span className="text-accent-foreground">.</span>
+          Owelio
         </Link>
         {me.data && (
           <div className="flex items-center gap-2">

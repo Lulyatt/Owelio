@@ -5,10 +5,10 @@ import { api, RequireAuth, useAction } from "@/lib/app";
 export const Route = createFileRoute("/join/$code")({
   head: () => ({
     meta: [
-      { title: "Join a group — Tally" },
-      { name: "description", content: "You've been invited to split expenses on Tally." },
-      { property: "og:title", content: "Join a group — Tally" },
-      { property: "og:description", content: "You've been invited to split expenses on Tally." },
+      { title: "Join a group — Owelio" },
+      { name: "description", content: "You've been invited to split expenses on Owelio." },
+      { property: "og:title", content: "Join a group — Owelio" },
+      { property: "og:description", content: "You've been invited to split expenses on Owelio." },
     ],
   }),
   component: () => <RequireAuth><Join /></RequireAuth>,

@@ -6,10 +6,10 @@ import { api, RequireAuth, useAction } from "@/lib/app";
 export const Route = createFileRoute("/notifications")({
   head: () => ({
     meta: [
-      { title: "Notifications — Tally" },
-      { name: "description", content: "Recent activity across your Tally groups." },
-      { property: "og:title", content: "Notifications — Tally" },
-      { property: "og:description", content: "Recent activity across your Tally groups." },
+      { title: "Notifications — Owelio" },
+      { name: "description", content: "Recent activity across your Owelio groups." },
+      { property: "og:title", content: "Notifications — Owelio" },
+      { property: "og:description", content: "Recent activity across your Owelio groups." },
     ],
   }),
   component: () => <RequireAuth><Notifications /></RequireAuth>,

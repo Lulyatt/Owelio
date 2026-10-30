@@ -35,8 +35,8 @@ export function toBase(amount: number, rate: number): number {
 /** Validate a split. Returns an error message, or null if valid. */
 export function validateExpense(e: ExpenseInput): string | null {
   if (!e.description.trim()) return "Add a description";
-  if (!Number.isInteger(e.amount) || e.amount <= 0) return "Amount must be greater than zero";
-  if (!(e.exchangeRate > 0)) return "Exchange rate must be greater than zero";
+  if (!Number.isInteger(e.amount) || e.amount <= 0) return "Amount must be more than zero";
+  if (!(e.exchangeRate > 0)) return "Exchange rate must be more than zero";
   if (e.participantIds.length === 0) return "Choose at least one person to include";
   return validateSplit(e.amount, e.participantIds, e.split);
 }

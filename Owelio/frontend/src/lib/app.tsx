@@ -33,13 +33,18 @@ export function useHydrated() {
 export function RequireAuth({ children }: { children: ReactNode }) {
   const me = useMe();
   const navigate = useNavigate();
+  const hydrated = useHydrated();
   useEffect(() => {
+    if (!hydrated) return;
     if (me.isSuccess && !me.data) {
       const redirect = window.location.pathname + window.location.search;
       navigate({ to: "/login", search: { redirect } });
     }
-  }, [me.isSuccess, me.data, navigate]);
-  if (!me.data) return <div className="p-10 text-center text-muted-foreground">Loading…</div>;
+  }, [hydrated, me.isSuccess, me.data, navigate]);
+  if (!hydrated || me.isLoading) {
+    return <div className="p-10 text-center text-muted-foreground">Loading…</div>;
+  }
+  if (!me.data) return null;
   return <>{children}</>;
 }
 

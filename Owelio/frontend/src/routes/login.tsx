@@ -10,10 +10,10 @@ export const Route = createFileRoute("/login")({
   validateSearch: (s: Record<string, unknown>) => ({ redirect: typeof s["redirect"] === "string" ? s["redirect"] : undefined }),
   head: () => ({
     meta: [
-      { title: "Log in — Tally" },
-      { name: "description", content: "Log in or create a Tally account to split expenses with your groups." },
-      { property: "og:title", content: "Log in — Tally" },
-      { property: "og:description", content: "Log in or create a Tally account to split expenses with your groups." },
+      { title: "Log in — Owelio" },
+      { name: "description", content: "Log in or register for an Owelio account to split expenses with your groups." },
+      { property: "og:title", content: "Log in — Owelio" },
+      { property: "og:description", content: "Log in or register for an Owelio account to split expenses with your groups." },
     ],
   }),
   component: LoginPage,
@@ -34,7 +34,7 @@ function LoginPage() {
       <div>
         <h1 className="text-5xl font-bold leading-tight text-primary">Fair shares, no awkward maths.</h1>
         <p className="mt-4 text-muted-foreground">
-          Trips, dinners, flatshares. Log what was spent, choose who it was for, and Tally works out the fewest payments to settle up.
+          Holidays, dinners, flatshares. Log what was spent, choose who it was for, and Owelio works out the fewest payments to settle up.
         </p>
         <p className="mt-6 rounded-md border border-dashed bg-muted p-3 text-sm text-muted-foreground">
           Demo account: <b>alex@example.com</b> / <b>password123</b>
@@ -44,7 +44,7 @@ function LoginPage() {
         <Tabs defaultValue="login">
           <TabsList className="mb-4 grid w-full grid-cols-2">
             <TabsTrigger value="login">Log in</TabsTrigger>
-            <TabsTrigger value="register">Create account</TabsTrigger>
+            <TabsTrigger value="register">Register</TabsTrigger>
           </TabsList>
           <TabsContent value="login">
             <form className="space-y-4" onSubmit={async (e) => { e.preventDefault(); await login.mutateAsync(undefined); done(); }}>
@@ -58,7 +58,7 @@ function LoginPage() {
               <Field label="Name"><Input value={name} onChange={(e) => setName(e.target.value)} required /></Field>
               <Field label="Email"><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></Field>
               <Field label="Password (8+ characters)"><Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required /></Field>
-              <Button className="w-full" disabled={register.isPending}>Create account</Button>
+              <Button className="w-full" disabled={register.isPending}>Register</Button>
             </form>
           </TabsContent>
         </Tabs>

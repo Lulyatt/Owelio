@@ -16,9 +16,9 @@ import { Switch } from "@/components/ui/switch";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Your groups — Tally" },
+      { title: "Your groups — Owelio" },
       { name: "description", content: "See what you owe, what you're owed, and all your shared-expense groups." },
-      { property: "og:title", content: "Your groups — Tally" },
+      { property: "og:title", content: "Your groups — Owelio" },
       { property: "og:description", content: "See what you owe, what you're owed, and all your shared-expense groups." },
     ],
   }),
@@ -117,7 +117,7 @@ function NewGroupDialog() {
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5"><Label>Type</Label>
               <NativeSelect value={kind} onChange={(e) => { const k = e.target.value as GroupKind; setKind(k); setAutoArchive(k === "temporary"); }}>
-                <option value="temporary">Temporary (trip, event)</option>
+                <option value="temporary">Temporary (holiday, event)</option>
                 <option value="ongoing">Ongoing (household)</option>
               </NativeSelect>
             </div>

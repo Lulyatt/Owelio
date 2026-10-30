@@ -24,7 +24,7 @@ describe("split methods", () => {
   it("custom amounts are used exactly", () => {
     expect(computeShares(exp({ amount: 1000, split: { method: "custom", amounts: { a: 250, b: 750 } } }))).toEqual({ a: 250, b: 750 });
   });
-  it("percentage split allocates by percent", () => {
+  it("percentage split allocates by percentage", () => {
     expect(computeShares(exp({ amount: 8400, split: { method: "percentage", percents: { a: 60, b: 40 } } }))).toEqual({ a: 5040, b: 3360 });
   });
   it("itemised split charges each item only to its assignees", () => {

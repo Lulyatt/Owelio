@@ -18,9 +18,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 export const Route = createFileRoute("/groups/$groupId")({
   head: () => ({
     meta: [
-      { title: "Group — Tally" },
+      { title: "Group — Owelio" },
       { name: "description", content: "Expenses, balances and settlements for your group." },
-      { property: "og:title", content: "Group — Tally" },
+      { property: "og:title", content: "Group — Owelio" },
       { property: "og:description", content: "Expenses, balances and settlements for your group." },
     ],
   }),
@@ -191,7 +191,7 @@ function Balances({ group, members, balances, settlements, meId }: { group: Grou
                 <span className="flex items-center gap-2 text-sm">{name(p.fromId)} <ArrowRight className="size-4" /> {name(p.toId)}</span>
                 <span className="flex items-center gap-2">
                   <span className="tabular font-semibold">{fmt(p.amount)}</span>
-                  {!group.archived && <Button size="sm" variant="outline" onClick={() => settle.mutate(p)}>Mark paid</Button>}
+                  {!group.archived && <Button size="sm" variant="outline" onClick={() => settle.mutate(p)}>Mark as paid</Button>}
                 </span>
               </li>
             ))}
@@ -262,7 +262,7 @@ function Members({ group, members }: { group: Group; members: User[] }) {
         <h2 className="text-xl font-semibold">Members</h2>
         <ul className="divide-y rounded-lg border bg-card shadow-ledger">
           {members.map((m) => <li key={m.id} className="p-3"><p className="font-medium">{m.name}</p><p className="text-sm text-muted-foreground">{m.email}</p></li>)}
-          {invites.data?.map((i) => <li key={i.id} className="p-3 text-sm text-muted-foreground">{i.email} · invited, joins when they sign up</li>)}
+          {invites.data?.map((i) => <li key={i.id} className="p-3 text-sm text-muted-foreground">{i.email} · invited, joins when they register</li>)}
         </ul>
         <p className="text-sm text-muted-foreground">Everyone in the group can add, edit and delete expenses.</p>
       </section>
