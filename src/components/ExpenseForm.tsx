@@ -15,14 +15,14 @@ const minorToStr = (m: number) => (m ? (m / 100).toFixed(2) : "");
 
 export interface ExpenseFormResult {
   input: ExpenseInput;
-  recurring?: { frequency: Frequency };
+  recurring?: { frequency: Frequency } | undefined;
 }
 
 export function ExpenseForm({ group, members, meId, initial, allowRecurring, onSubmit, busy }: {
   group: Group;
   members: User[];
   meId: string;
-  initial?: ExpenseInput;
+  initial?: ExpenseInput | undefined;
   allowRecurring?: boolean;
   busy?: boolean;
   onSubmit: (r: ExpenseFormResult) => void;

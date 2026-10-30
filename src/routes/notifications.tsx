@@ -24,6 +24,7 @@ function Notifications() {
       const t = setTimeout(() => markRead.mutate(undefined), 1500);
       return () => clearTimeout(t);
     }
+    return undefined;
   }, [hasUnread]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (

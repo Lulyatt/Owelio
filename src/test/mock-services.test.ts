@@ -78,7 +78,7 @@ describe("mock services", () => {
     const dates = (await svc.expenses.list(g.id)).map((e) => e.date).sort();
     expect(dates).toEqual(["2026-10-09", "2026-10-16", "2026-10-23", "2026-10-30"]);
     const [r] = await svc.recurring.list(g.id);
-    expect(r.nextDate).toBe("2026-11-06");
+    expect(r?.nextDate).toBe("2026-11-06");
   });
 
   it("dashboard totals what you owe and are owed", async () => {

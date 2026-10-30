@@ -36,7 +36,7 @@ export function AppHeader() {
               aria-label="Log out"
               onClick={async () => {
                 await logout.mutateAsync(undefined);
-                navigate({ to: "/login", search: {} });
+                navigate({ to: "/login", search: { redirect: undefined } });
               }}
             >
               <LogOut />

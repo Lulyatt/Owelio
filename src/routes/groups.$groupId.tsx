@@ -105,7 +105,7 @@ function GroupPage() {
 
 const nameIn = (members: User[]) => (id: string) => members.find((m) => m.id === id)?.name ?? "Former member";
 
-function ExpenseList({ group, members, expenses, onEdit }: { group: Group; members: User[]; expenses: Expense[]; onEdit?: (e: Expense) => void }) {
+function ExpenseList({ group, members, expenses, onEdit }: { group: Group; members: User[]; expenses: Expense[]; onEdit?: ((e: Expense) => void) | undefined }) {
   const [open, setOpen] = useState<string | null>(null);
   const remove = useAction((id: string) => api().expenses.remove(id), "Expense deleted");
   const name = nameIn(members);
@@ -177,8 +177,8 @@ function Balances({ group, members, balances, settlements, meId }: { group: Grou
           {group.memberIds.map((m) => (
             <li key={m} className="flex justify-between p-3">
               <span>{name(m)}{m === meId && " (you)"}</span>
-              <span className={`tabular font-semibold ${balances[m] < 0 ? "text-owe" : balances[m] > 0 ? "text-owed" : "text-muted-foreground"}`}>
-                {balances[m] === 0 ? "settled" : balances[m] > 0 ? `gets back ${fmt(balances[m])}` : `owes ${fmt(-balances[m])}`}
+              <span className={`tabular font-semibold ${(balances[m] ?? 0) < 0 ? "text-owe" : (balances[m] ?? 0) > 0 ? "text-owed" : "text-muted-foreground"}`}>
+                {(() => { const b = balances[m] ?? 0; return b === 0 ? "settled" : b > 0 ? `gets back ${fmt(b)}` : `owes ${fmt(-b)}`; })()}
               </span>
             </li>
           ))}
@@ -202,7 +202,7 @@ function Balances({ group, members, balances, settlements, meId }: { group: Grou
         {!group.archived && (
           <>
             <h2 className="text-xl font-semibold">Record a payment</h2>
-            <form className="space-y-2 rounded-lg border bg-card p-4" onSubmit={(e) => { e.preventDefault(); const amount = parseMoney(amt); if (!amount) return toast.error("Enter an amount"); settle.mutate({ fromId: from, toId: to, amount }); setAmt(""); }}>
+            <form className="space-y-2 rounded-lg border bg-card p-4" onSubmit={(e) => { e.preventDefault(); const amount = parseMoney(amt); if (!amount) { toast.error("Enter an amount"); return; } settle.mutate({ fromId: from, toId: to, amount }); setAmt(""); }}>
               <div className="grid grid-cols-2 gap-2">
                 <NativeSelect value={from} onChange={(e) => setFrom(e.target.value)} aria-label="Who paid">{members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}</NativeSelect>
                 <NativeSelect value={to} onChange={(e) => setTo(e.target.value)} aria-label="Paid to">{members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}</NativeSelect>

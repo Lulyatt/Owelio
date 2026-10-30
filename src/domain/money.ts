@@ -6,22 +6,23 @@ import type { Expense, ExpenseInput, ID, Payment, Settlement, Split } from "./ty
  * Ties go to the earlier key (stable, predictable).
  */
 export function allocate(total: number, weights: Record<ID, number>): Record<ID, number> {
-  const keys = Object.keys(weights).filter((k) => weights[k] > 0);
+  const keys = Object.keys(weights).filter((k) => (weights[k] ?? 0) > 0);
   const result: Record<ID, number> = {};
-  const sum = keys.reduce((s, k) => s + weights[k], 0);
+  const sum = keys.reduce((s, k) => s + weights[k]!, 0);
   if (keys.length === 0 || sum <= 0) return result;
-  const raw = keys.map((k) => ({ k, exact: (total * weights[k]) / sum }));
+  const raw = keys.map((k) => ({ k, exact: (total * weights[k]!) / sum }));
   let assigned = 0;
   for (const r of raw) {
     result[r.k] = Math.floor(r.exact);
-    assigned += result[r.k];
+    assigned += result[r.k]!;
   }
   let remainder = total - assigned;
   const order = raw
     .map((r, i) => ({ ...r, i, frac: r.exact - Math.floor(r.exact) }))
     .sort((a, b) => b.frac - a.frac || a.i - b.i);
   for (let j = 0; remainder > 0; j = (j + 1) % order.length, remainder--) {
-    result[order[j].k] += 1;
+    const o = order[j]!;
+    result[o.k] = (result[o.k] ?? 0) + 1;
   }
   return result;
 }
@@ -125,8 +126,8 @@ export function simplifyDebts(balances: Record<ID, number>): Payment[] {
   while (debtors.length && creditors.length) {
     debtors.sort((a, b) => b.v - a.v);
     creditors.sort((a, b) => b.v - a.v);
-    const d = debtors[0];
-    const c = creditors[0];
+    const d = debtors[0]!;
+    const c = creditors[0]!;
     const amt = Math.min(d.v, c.v);
     payments.push({ fromId: d.id, toId: c.id, amount: amt });
     d.v -= amt;
@@ -154,7 +155,7 @@ export function parseMoney(input: string): number {
 
 /** Add a schedule step to a YYYY-MM-DD date. Monthly clamps to month end (31 Jan -> 28/29 Feb). */
 export function addInterval(date: string, freq: "daily" | "weekly" | "monthly", anchorDay?: number): string {
-  const [y, m, d] = date.split("-").map(Number);
+  const [y, m, d] = date.split("-").map(Number) as [number, number, number];
   if (freq === "daily" || freq === "weekly") {
     const dt = new Date(Date.UTC(y, m - 1, d + (freq === "daily" ? 1 : 7)));
     return dt.toISOString().slice(0, 10);
