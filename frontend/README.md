@@ -2,7 +2,7 @@
 
 Owelio helps groups split shared expenses fairly — holidays, meals, flatshares, and household bills — in any currency. Log who paid, choose how to split, and see the fewest payments needed to settle up.
 
-This folder is the **frontend** (TanStack Start + React + Vite). The repository is organised as `Owelio/frontend` and `Owelio/backend` (backend to be added).
+This folder is the **frontend** (TanStack Start + React + Vite). The repository root has `frontend/` and `backend/` (backend to be added).
 
 ## How it works today
 
@@ -19,7 +19,7 @@ git clone git@github.com:Lulyatt/Owelio.git
 cd Owelio/frontend
 ```
 
-You can also run scripts from the **`Owelio/`** folder (monorepo root): `npm run dev` delegates to `frontend/`.
+You can also run scripts from the **repository root**: `npm run dev` delegates to `frontend/`.
 
 With **Bun** (lockfile in repo):
 
@@ -48,7 +48,7 @@ Use **`127.0.0.1`**, not `localhost`, so you match what Vite prints.
 That message is **not** from Owelio’s UI — it means the browser hit **some other program** on that port (port **8080** is commonly used by Java/Tomcat and similar tools), or dev is **not running** and an old bookmark still points at the wrong URL.
 
 1. Press **Ctrl+C** in every terminal that might be running dev.
-2. From `Owelio/frontend` (or `Owelio/`):
+2. From `frontend/` (or the repo root):
 
 ```sh
 npm run dev:fresh
