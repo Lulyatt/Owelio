@@ -195,7 +195,10 @@ export function createMockServices(opts: MockOptions = {}): Services {
     },
 
     groups: {
-      list: () => run(() => state.groups.filter((g) => g.memberIds.includes(me().id))),
+      list: () => run(() => {
+        const id = me().id;
+        return state.groups.filter((g) => g.memberIds.includes(id));
+      }),
       get: (id) => run(() => groupFor(id)),
       create: ({ name, kind, baseCurrency, autoArchive }) => run(() => {
         const u = me();
